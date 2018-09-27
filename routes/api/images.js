@@ -27,6 +27,9 @@ const upload = multer({
 // Get The model of image
 const Image = require("../../models/Images");
 
+// Get The model of User
+const User = require("../../models/Users");
+
 //Validation
 const validateImageInput = require("../../validation/image");
 
@@ -79,6 +82,40 @@ router.post(
       user: req.user.id
     });
     newImage.save().then(image => res.json(image));
+  }
+);
+
+//@route    Delete api/images/:id
+//@desc     Delete images
+//@access   private
+router.delete(
+  "/:id",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    User.findOne({ user: req.user.id }).then(user => {
+      Image.findById(req.params.id)
+        .then(image => {
+          //check for image owner
+          if (image.user.toString() !== req.user.id) {
+            return res
+              .status(401)
+              .json({ notauthorized: "User not authorized" });
+          }
+
+          //Delete
+          image
+            .remove()
+            .then(() =>
+              res.json({
+                success: true,
+                msg: "Oops image deleted with the requested id"
+              })
+            );
+        })
+        .catch(err =>
+          res.status(404).json({ imagenotfound: "No Image found" })
+        );
+    });
   }
 );
 
